@@ -60,15 +60,17 @@ def variance(data, axis, choice=''):
 
 
 def get_slopes (data):
-    slopes_mask = np.full((145,360), np.nan)
-    slopes = np.zeros((145,360))
+    slopes_mask = np.full(data[0].shape, np.nan)
+    slopes = np.zeros(data[0].shape)
     months = np.arange(0,12*15)
+    kov = np.zeros(data[0].shape)
 
-    for lat in np.arange(0,145):
-        for lon in np.arange(0,360):
+    for lat in np.arange(0,data[0].shape[0]):
+        for lon in np.arange(0,data[0].shape[1]):
             yfinite = np.isfinite(data[:, lat, lon])
-            if (months[yfinite].size > 5):
-                slopes [lat][lon], k = np.polyfit(months[yfinite], data[:, lat, lon][yfinite], 1)
+            if (months[yfinite].size > 24):
+                a, b = np.polyfit(months[yfinite], data[:, lat, lon][yfinite], 1, full = False, cov = True)
+                slopes[lat][lon]=a [0]
+                kov [lat][lon] = np.sqrt(np.diag(np.asarray(b))) [0]
                 slopes_mask[lat][lon] = 1
-
-    return slopes, slopes_mask, months
+    return slopes, slopes_mask, months, kov
