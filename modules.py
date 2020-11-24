@@ -127,15 +127,29 @@ def projected_pcs(solver, data):
             # If an extra dimension was created, remove it 
             projected_pcs = projected_pcs[0]
         return projected_pcs
-
+    
 #create a set of eofs by projecting data onto the pcs
 def projected_eofs(solver, data):
-        data_flat = data.reshape(-1, 180,145*360)
-        # Project principal components onto the data to compute the EOFs
-        projected_eofs = np.dot(solver._P[:], data_flat)
-        # Reshape the pseudo EOFs
-        projected_eofs = projected_eofs.reshape((solver._records,) + solver._originalshape)
-        # Weighting EOFs
-        if solver._weights is not None:
-            projected_eofs = projected_eofs * solver._weights
+        # Check that the shape of the data is compatible with the EOFs
+        solver._verify_projection_shape(data, solver._originalshape)
+        input_ndim = data.ndim
+        eof_ndim = len(solver._originalshape) + 1
+        # Create a slice object for truncating the EOFs
+        slicer = slice(0, solver.neofs)
+        # Weight the data set with the weighting used for EOFs
+        data = data.copy()
+        # Flatten the data to get [time, space] 2d data
+        if eof_ndim > input_ndim:
+            data = data.reshape((1,) + data.shape)
+        records = data.shape[0]
+        channels = np.product(data.shape[1:])
+        data_flat = data.reshape([records, channels])
+        # get pcs
+        pc = solver.pcs()
+        # Project the data set onto the EOFs 
+        projected_eofs = np.dot(data_flat.T, pc)
+        
+        projected_eofs = projected_eofs.T
+        # Reshape eofs
+        projected_eofs = projected_eofs.reshape((180,145,360))
         return projected_eofs
